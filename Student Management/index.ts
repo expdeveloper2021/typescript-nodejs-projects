@@ -135,7 +135,7 @@ class Instructor {
     age: number
     salary: number
     coursesAssigned: number[]
-    static id: number = 0;
+    static id: number = 1;
     id: number; // Add an id property to the class
 
     constructor(name: string, age: number, salary: number) {
@@ -154,7 +154,7 @@ class Course {
     fees: number | string
     instructor: number | null
     students: number[]
-    static id: number = 0;
+    static id: number = 1;
     id: number; // Add an id property to the class
 
     constructor(name: string, timing: string, fees: number | string) {
@@ -170,11 +170,24 @@ class Course {
         let indexOfInstructor = allInstructors.findIndex((instructor) => {
             return instructor.id === instructorId
         })
-        let indexOfCourse = allCourses.findIndex((instructor) => {
-            return instructor.name === this.name
+        if (indexOfInstructor !== -1) {
+            allInstructors[indexOfInstructor].coursesAssigned.push(this.id)
+            this.instructor = instructorId
+        }
+    }
+
+    removeInstructor(instructorId: number) {
+        let indexOfInstructor = allInstructors.findIndex((instructor) => {
+            return instructor.id === instructorId
         })
         if (indexOfInstructor !== -1) {
-            allInstructors[indexOfInstructor].coursesAssigned.push(allCourses[indexOfCourse].id)
+            let indexOfCourseInstructor = allInstructors[indexOfInstructor].coursesAssigned.findIndex((id) => {
+                return id === instructorId
+            })
+            if (indexOfCourseInstructor !== -1) {
+                allInstructors[indexOfInstructor].coursesAssigned.splice(indexOfCourseInstructor, 1)
+            }
+            allInstructors[indexOfInstructor].coursesAssigned.push(this.id)
             this.instructor = instructorId
         }
     }
@@ -182,13 +195,22 @@ class Course {
     enrollStudent(studentNumberId: number) {
         this.students.push(studentNumberId)
     }
+
+    cancelStudent(studentNumberId: number) {
+        let indexOfStudent = this.students.findIndex((studentIDs) => {
+            return studentIDs === studentNumberId
+        })
+        if (indexOfStudent !== -1) {
+            this.students.splice(indexOfStudent, 1)
+        }
+    }
 }
 
 class Student {
     name: string;
     enrolled_courses: number[]
     balance: number = 1000
-    static id: number = 0;
+    static id: number = 1;
     id: number; // Add an id property to the class
 
     constructor(nameParam: string) {
@@ -201,90 +223,191 @@ class Student {
         let courseIndex = allCourses.findIndex((course) => {
             return course.id === courseId
         })
-        let indexOfStudent = allStudents.findIndex((student) => {
-            return student.name === this.name
-        })
         if (courseIndex !== -1 && allCourses.length) {
-            this.enrolled_courses.push(allStudents[indexOfStudent].id)
-            allCourses[courseIndex].enrollStudent(allStudents[indexOfStudent].id)
+            this.enrolled_courses.push(courseId)
+            allCourses[courseIndex].enrollStudent(this.id)
+        }
+    }
+
+    deleteFromCourse(courseId: number) {
+        let courseIndex = allCourses.findIndex((course) => {
+            return course.id === courseId
+        })
+
+        if (courseIndex !== -1 && allCourses.length) {
+            this.enrolled_courses.push(this.id)
+            let indexOfCourseId = this.enrolled_courses.findIndex((id) => {
+                return id === courseId
+            })
+            if (indexOfCourseId !== -1) {
+                this.enrolled_courses.splice(indexOfCourseId, 1)
+            }
+
+            allCourses[courseIndex].cancelStudent(this.id)
         }
     }
 }
 
-let resultsFirst = await inquirer.prompt([
-    {
-        name: "actionType",
-        type: "list",
-        choices: ["Add Student", "Add Instructor", "Add Courses"]
-    }
-])
-
-if (resultsFirst.actionType === "Add Instructor") {
-    let instructorQuestions = await inquirer.prompt([
+async function performOperation() {
+    let resultsFirst = await inquirer.prompt([
         {
-            name: "name",
-            type: "input",
-            message: "Enter instructor name"
-        },
-        {
-            name: "age",
-            type: "number",
-            message: "Enter instructor Age"
-        },
-        {
-            name: "salary",
-            type: "number",
-            message: "Enter instructor's Salary"
-        }
-    ])
-    if (instructorQuestions) {
-        const { name, age, salary } = instructorQuestions
-        let instructor = new Instructor(name, age, salary)
-        allInstructors.push(instructor)
-    }
-} else if (resultsFirst.actionType === "Add Student") {
-    let studentQuestionsArr: { name: string, type: string, message?: string, choices?: string[] }[] = [
-        {
-            name: "name",
-            type: "input",
-            message: "Enter Student name"
-        },
-    ]
-    if (allCourses.length > 0) {
-        let obj = {
-            name: "course",
+            name: "actionType",
             type: "list",
-            choices: allCourses.map(e => e.name)
-        }
-        studentQuestionsArr.push(obj)
-    }
-    let studentQuestions = await inquirer.prompt(studentQuestionsArr)
-    if (studentQuestions) {
-        const { name } = studentQuestions
-        let student = new Student(name)
-        allStudents.push(student)
-    }
-} else if (resultsFirst.actionType === "Add Course") {
-    let studentQuestions = await inquirer.prompt([
-        {
-            name: "name",
-            type: "input",
-            message: "Enter Course name"
+            choices: ["Add Student", "Add Instructor", "Add Courses", "Edit", "Delete"]
         },
-        {
-            name: "timing",
-            type: "input",
-            message: "Enter Course timing"
-        },
-        {
-            name: "fees",
-            type: "number",
-            message: "Enter Course fees"
-        }
     ])
-    if (studentQuestions) {
-        const { name, timing, fees } = studentQuestions
-        let course = new Course(name, timing, fees)
-        allCourses.push(course)
+
+    if (resultsFirst.actionType === "Delete" || resultsFirst.actionType === "Edit") {
+        let resultsInner = await inquirer.prompt([
+            {
+                name: "actionType",
+                type: "list",
+                choices: ["Student", "Instructor", "Courses"]
+            }
+        ])
+        if (resultsInner.actionType === "Student") {
+            if (allStudents.length > 0) {
+                console.table(allStudents)
+                let id = await getIDToPerformOperation()
+                let findIdexViaId = allStudents.findIndex((student) => {
+                    return student.id === id
+                })
+                if (resultsFirst.actionType === "Delete") {
+                    allStudents.splice(findIdexViaId, 1)
+
+                    console.log("Student Deleted Successfully")
+                    console.table(allStudents)
+                }
+            } else {
+                console.log("Please Add any student")
+            }
+        } else if (resultsInner.actionType === "Instructor") {
+            if (allInstructors.length > 0) {
+                console.table(allInstructors)
+                let id = await getIDToPerformOperation()
+                let findIdexViaId = allInstructors.findIndex((student) => {
+                    return student.id === id
+                })
+                if (resultsFirst.actionType === "Delete") {
+                    allInstructors.splice(findIdexViaId, 1)
+
+                    console.log("Instructor Deleted Successfully")
+                    console.table(allInstructors)
+                }
+            } else {
+                console.log("Please Add any instructor")
+            }
+        } else if (resultsInner.actionType === "Courses") {
+            if (allCourses.length > 0) {
+                console.table(allCourses)
+                let id = await getIDToPerformOperation()
+                let findIdexViaId = allCourses.findIndex((student) => {
+                    return student.id === id
+                })
+                if (resultsFirst.actionType === "Delete") {
+                    allCourses.splice(findIdexViaId, 1)
+
+                    console.log("Course Deleted Successfully")
+                    console.table(allCourses)
+                }
+            } else {
+                console.log("Please Add any course")
+            }
+        }
+    } else if (resultsFirst.actionType === "Add Instructor") {
+        let instructorQuestions = await inquirer.prompt([
+            {
+                name: "name",
+                type: "input",
+                message: "Enter instructor name"
+            },
+            {
+                name: "age",
+                type: "number",
+                message: "Enter instructor Age"
+            },
+            {
+                name: "salary",
+                type: "number",
+                message: "Enter instructor's Salary"
+            }
+        ])
+        if (instructorQuestions) {
+            const { name, age, salary } = instructorQuestions
+            let instructor = new Instructor(name, age, salary)
+            allInstructors.push(instructor)
+
+            console.log("Instructor Added Successfully ====>", allInstructors[allInstructors.length - 1])
+        }
+    } else if (resultsFirst.actionType === "Add Student") {
+        let studentQuestionsArr: { name: string, type: string, message?: string, choices?: string[] }[] = [
+            {
+                name: "name",
+                type: "input",
+                message: "Enter Student name"
+            },
+        ]
+        if (allCourses.length > 0) {
+            let obj = {
+                name: "course",
+                type: "list",
+                choices: allCourses.map(e => e.name)
+            }
+            studentQuestionsArr.push(obj)
+        }
+        let studentQuestions = await inquirer.prompt(studentQuestionsArr)
+        if (studentQuestions) {
+            const { name } = studentQuestions
+            let student = new Student(name)
+            allStudents.push(student)
+
+            console.log("Student Added Successfully ====>", allStudents[allStudents.length - 1])
+        }
+    } else if (resultsFirst.actionType === "Add Courses") {
+        let courseQuestions = await inquirer.prompt([
+            {
+                name: "name",
+                type: "input",
+                message: "Enter Course name"
+            },
+            {
+                name: "timing",
+                type: "input",
+                message: "Enter Course timing"
+            },
+            {
+                name: "fees",
+                type: "number",
+                message: "Enter Course fees"
+            }
+        ])
+        if (courseQuestions) {
+            const { name, timing, fees } = courseQuestions
+            let course = new Course(name, timing, fees)
+            allCourses.push(course)
+
+            console.log("Course Added Successfully ====>", allCourses[allCourses.length - 1])
+        }
+    }
+
+    let reConfirmation = await inquirer.prompt({
+        name: "selection",
+        type: "confirm",
+        message: "Do you want to exit?"
+    })
+    if (!reConfirmation.selection) {
+        performOperation()
     }
 }
+
+async function getIDToPerformOperation() {
+    let toEditDelete = await inquirer.prompt({
+        name: "idNumber",
+        type: "number",
+        message: "Enter the ID to perform action"
+    })
+
+    return Number(toEditDelete.idNumber)
+}
+
+performOperation()
