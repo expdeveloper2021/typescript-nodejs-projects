@@ -1,134 +1,8 @@
 import inquirer from 'inquirer';
 
-// let allCourses: string[] = [
-//     "MERN STACK",
-//     "DIT",
-//     "WEB 3.0",
-//     "ARTIFICIAL INTELLIGENCE",
-//     "METAVERSE",
-// ]
-
-// class Student {
-//     static nextStudentId = 1; // Initial student ID
-//     id: number;
-//     name: string;
-//     courses: string[];
-//     balance: number;
-
-//     constructor(name: string, balance: number) {
-//         this.id = Student.nextStudentId++;
-//         this.name = name;
-//         this.courses = [];
-//         this.balance = balance;
-//     }
-
-//     enroll(course: string) {
-//         this.courses.push(course);
-//     }
-
-//     viewBalance() {
-//         console.log(`Balance: $${this.balance}`);
-//     }
-
-//     payTuition(amount: number) {
-//         this.balance -= amount;
-//         console.log(`Paid $${amount}`);
-//     }
-
-//     showStatus() {
-//         console.log(`Student ID: ${this.id}`);
-//         console.log(`Name: ${this.name}`);
-//         console.log(`Courses Enrolled: ${this.courses.join(', ')}`);
-//         this.viewBalance();
-//     }
-// }
-
-// const students: Student[] = [];
-
-// async function addStudent() {
-//     const { name, balance } = await inquirer.prompt([
-//         {
-//             type: 'input',
-//             name: 'name',
-//             message: "Enter student's name:",
-//         },
-//         {
-//             type: 'number',
-//             name: 'balance',
-//             message: "Enter student's balance:",
-//         },
-//     ]);
-
-//     const student = new Student(name, balance);
-//     students.push(student);
-//     console.log(`Student ${student.name} added with ID ${student.id}`);
-// }
-
-// async function enrollStudent() {
-//     const { studentId, course } = await inquirer.prompt([
-//         {
-//             type: 'input',
-//             name: 'studentId',
-//             message: "Enter student ID:",
-//         },
-//         {
-//             type: 'list',
-//             choices: allCourses,
-//             name: 'course',
-//             message: 'Enter course name:',
-//         },
-//     ]);
-
-//     const student = students.find(s => s.id === parseInt(studentId));
-//     if (student) {
-//         student.enroll(course);
-//         console.log(`${student.name} enrolled in ${course}`);
-//     } else {
-//         console.log('Student not found.');
-//     }
-// }
-
-// // Other functions (view balance, pay tuition, show status) can be implemented similarly.
-
-// async function main() {
-//     while (true) {
-//         const { choice } = await inquirer.prompt([
-//             {
-//                 type: 'list',
-//                 name: 'choice',
-//                 message: 'Select an option:',
-//                 choices: [
-//                     'Add Student',
-//                     'Enroll Student',
-//                     // Add other choices here
-//                     'Exit',
-//                 ],
-//             },
-//         ]);
-
-//         switch (choice) {
-//             case 'Add Student':
-//                 await addStudent();
-//                 break;
-//             case 'Enroll Student':
-//                 await enrollStudent();
-//                 break;
-//             // Implement other cases here
-//             case 'Exit':
-//                 console.log('Exiting...');
-//                 return;
-//             default:
-//                 console.log('Invalid choice.');
-//         }
-//     }
-// }
-
-// main();
-
 let allCourses: Course[] = []
 let allInstructors: Instructor[] = []
 let allStudents: Student[] = []
-
 
 class Instructor {
     name: string
@@ -170,6 +44,7 @@ class Course {
         let indexOfInstructor = allInstructors.findIndex((instructor) => {
             return instructor.id === instructorId
         })
+        console.log(indexOfInstructor, '/see')
         if (indexOfInstructor !== -1) {
             allInstructors[indexOfInstructor].coursesAssigned.push(this.id)
             this.instructor = instructorId
@@ -253,11 +128,12 @@ async function performOperation() {
         {
             name: "actionType",
             type: "list",
-            choices: ["Add Student", "Add Instructor", "Add Courses", "Edit", "Delete"]
+            choices: ["Add Student", "Add Instructor", "Add Courses", "Edit", "Delete", "View"],
+            message: "Select Action"
         },
     ])
 
-    if (resultsFirst.actionType === "Delete" || resultsFirst.actionType === "Edit") {
+    if (resultsFirst.actionType === "View") {
         let resultsInner = await inquirer.prompt([
             {
                 name: "actionType",
@@ -269,11 +145,94 @@ async function performOperation() {
             if (allStudents.length > 0) {
                 console.table(allStudents)
                 let id = await getIDToPerformOperation()
-                let findIdexViaId = allStudents.findIndex((student) => {
+                let findIndexViaId = allStudents.findIndex((student) => {
+                    return student.id === id
+                })
+                if (findIndexViaId !== -1) {
+                    let currentStudent = allStudents[findIndexViaId]
+                    console.log(`Student Name: ${currentStudent.name} \nStudent ID: ${currentStudent.id} \nStudent Balance: ${currentStudent.balance}`)
+                    if (currentStudent.enrolled_courses) {
+                        console.log("Courses Enrolled:")
+                        currentStudent.enrolled_courses.map((courseId, index) => {
+                            console.log(`${index + 1}: ${getNameById(courseId, allCourses)}`)
+                        })
+                    }
+                }
+            } else {
+                console.log("Please Add any student")
+            }
+        } else if (resultsInner.actionType === "Instructor") {
+            if (allInstructors.length > 0) {
+                console.table(allInstructors)
+                let id = await getIDToPerformOperation()
+                let findIndexViaId = allInstructors.findIndex((student) => {
+                    return student.id === id
+                })
+                if (findIndexViaId !== -1) {
+                    let currentInstructor = allInstructors[findIndexViaId]
+                    console.log(`Instructor Name: ${currentInstructor.name} \nInstructor ID: ${currentInstructor.id} \nInstructor Salary: ${currentInstructor.salary} \nInstructor age ${currentInstructor.age}`)
+                    if (currentInstructor.coursesAssigned) {
+                        console.log("Courses Assigned TO Instructor:")
+                        currentInstructor.coursesAssigned.map((courseId, index) => {
+                            console.log(`${index + 1}: ${getNameById(courseId, allCourses)}`)
+                        })
+                    }
+                }
+            } else {
+                console.log("Please Add any instructor")
+            }
+        } else if (resultsInner.actionType === "Courses") {
+            if (allCourses.length > 0) {
+                console.table(allCourses)
+                let id = await getIDToPerformOperation()
+                let findIndexViaId = allCourses.findIndex((student) => {
+                    return student.id === id
+                })
+                if (findIndexViaId !== -1) {
+                    let currentCourse = allCourses[findIndexViaId]
+                    console.log(`Course Name: ${currentCourse.name} \nCourse ID: ${currentCourse.id} \nCourse Timing: ${currentCourse.timing} \nCouse Fees ${currentCourse.fees}`)
+                    if (currentCourse.students) {
+                        console.log("Students in Course:")
+                        currentCourse.students.map((studentId, index) => {
+                            console.log(`${index + 1}: ${getNameById(studentId, allStudents)}`)
+                        })
+                    }
+                    if (currentCourse.instructor) {
+                        console.log("Instructor Of Course:")
+                        console.log(`${getNameById(currentCourse.instructor, allInstructors)}`)
+                    }
+                }
+            } else {
+                console.log("Please Add any course")
+            }
+        }
+    } else if (resultsFirst.actionType === "Delete" || resultsFirst.actionType === "Edit") {
+        let resultsInner = await inquirer.prompt([
+            {
+                name: "actionType",
+                type: "list",
+                choices: ["Student", "Instructor", "Courses"]
+            }
+        ])
+        if (resultsInner.actionType === "Student") {
+            if (allStudents.length > 0) {
+                console.table(allStudents)
+                let id = await getIDToPerformOperation()
+                let findIndexViaId = allStudents.findIndex((student) => {
                     return student.id === id
                 })
                 if (resultsFirst.actionType === "Delete") {
-                    allStudents.splice(findIdexViaId, 1)
+                    allStudents.splice(findIndexViaId, 1)
+
+                    allCourses.map((course) => {
+                        if (course.students.includes(id)) {
+                            course.instructor = null
+                            let getIndex = course.students.findIndex((t) => {
+                                return t === id
+                            })
+                            course.students.splice(getIndex, 1)
+                        }
+                    })
 
                     console.log("Student Deleted Successfully")
                     console.table(allStudents)
@@ -285,11 +244,17 @@ async function performOperation() {
             if (allInstructors.length > 0) {
                 console.table(allInstructors)
                 let id = await getIDToPerformOperation()
-                let findIdexViaId = allInstructors.findIndex((student) => {
+                let findIndexViaId = allInstructors.findIndex((student) => {
                     return student.id === id
                 })
                 if (resultsFirst.actionType === "Delete") {
-                    allInstructors.splice(findIdexViaId, 1)
+                    allInstructors.splice(findIndexViaId, 1)
+
+                    allCourses.map((course) => {
+                        if (course.instructor === id) {
+                            course.instructor = null
+                        }
+                    })
 
                     console.log("Instructor Deleted Successfully")
                     console.table(allInstructors)
@@ -301,11 +266,11 @@ async function performOperation() {
             if (allCourses.length > 0) {
                 console.table(allCourses)
                 let id = await getIDToPerformOperation()
-                let findIdexViaId = allCourses.findIndex((student) => {
+                let findIndexViaId = allCourses.findIndex((student) => {
                     return student.id === id
                 })
                 if (resultsFirst.actionType === "Delete") {
-                    allCourses.splice(findIdexViaId, 1)
+                    allCourses.splice(findIndexViaId, 1)
 
                     console.log("Course Deleted Successfully")
                     console.table(allCourses)
@@ -315,7 +280,7 @@ async function performOperation() {
             }
         }
     } else if (resultsFirst.actionType === "Add Instructor") {
-        let instructorQuestions = await inquirer.prompt([
+        let instructorQuestionsArr: { name: string, type: string, message?: string, choices?: string[] }[] = [
             {
                 name: "name",
                 type: "input",
@@ -331,11 +296,33 @@ async function performOperation() {
                 type: "number",
                 message: "Enter instructor's Salary"
             }
-        ])
+        ]
+        if (allCourses.length > 0) {
+            let obj = {
+                name: "course",
+                type: "list",
+                choices: allCourses.map(e => e.name),
+                message: `Select course you want to assign to`
+            }
+            instructorQuestionsArr.push(obj)
+        }
+
+        let instructorQuestions = await inquirer.prompt(instructorQuestionsArr)
+
         if (instructorQuestions) {
-            const { name, age, salary } = instructorQuestions
+            const { name, age, salary, course } = instructorQuestions
             let instructor = new Instructor(name, age, salary)
+
             allInstructors.push(instructor)
+
+            if (course) {
+                let currentCourseIndex = allCourses.findIndex((courseInner) => {
+                    return courseInner.name === course
+                })
+                if (currentCourseIndex !== -1) {
+                    allCourses[currentCourseIndex].assignInstructor(instructor.id)
+                }
+            }
 
             console.log("Instructor Added Successfully ====>", allInstructors[allInstructors.length - 1])
         }
@@ -351,15 +338,27 @@ async function performOperation() {
             let obj = {
                 name: "course",
                 type: "list",
-                choices: allCourses.map(e => e.name)
+                choices: allCourses.map(e => e.name),
+                message: `Select course you want to enroll in`
             }
             studentQuestionsArr.push(obj)
         }
         let studentQuestions = await inquirer.prompt(studentQuestionsArr)
         if (studentQuestions) {
-            const { name } = studentQuestions
+            const { name, course } = studentQuestions
             let student = new Student(name)
+
+
             allStudents.push(student)
+
+            if (course) {
+                let currentCourseIndex = allCourses.findIndex((courseInner) => {
+                    return courseInner.name === course
+                })
+                if (currentCourseIndex !== -1) {
+                    student.enrollToCourse(allCourses[currentCourseIndex].id)
+                }
+            }
 
             console.log("Student Added Successfully ====>", allStudents[allStudents.length - 1])
         }
@@ -411,3 +410,12 @@ async function getIDToPerformOperation() {
 }
 
 performOperation()
+
+function getNameById(id: number, arrayMain: Student[] | Instructor[] | Course[]) {
+    let filtered = arrayMain.filter((t) => {
+        return t.id === id
+    })
+    if (filtered.length > 0) {
+        return filtered[0].name
+    }
+}
